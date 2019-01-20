@@ -17,11 +17,14 @@ import sakila.entity.Film;
 import sakila.util.HibernateUtil;
 
 /**
- *
- * @author ermig
+ * JFrame que lanza consultas sobre la BBDD Sakila
+ * Seleccionando una película devolverá nombre y apellido de actores
+ * y nombre y descripción de la película
+ * @author Miguel Ángel Ordóñez
+ * @version 1.0
  */
 public class Ventana extends java.awt.Frame {
-
+        
     /**
      * Creates new form Ventana
      */
@@ -30,10 +33,18 @@ public class Ventana extends java.awt.Frame {
         llenarCombo();
     }
 
-    private static String CONSULTA = "select a.firstName, a.lastName, f.title from Actor a,"
+    //Consulta para los actores
+    private static String CONSULTA = "select a from Actor a,"
             + " Film f, FilmActor fa where a.actorId = fa.actor and fa.film = f.filmId and"
             + " f.title like '";
 
+    //Consulta para la película
+    private static String CONSULTA_PELI="select f from Film f where f.title like '";
+    
+    /**
+     * Método lanzado al iniciar el JFrame
+     * Llena el jComboBox con los títulos de las películas de la BBDD
+     */
     private void llenarCombo() {
         Session sesion = null;
         try {
@@ -51,24 +62,42 @@ public class Ventana extends java.awt.Frame {
         }
     }
 
+    /**
+     * Método al que llamará el botón "Consulta" de la interface
+     */
     private void ejecutaConsulta() {
-        ejecutaHQLConsulta(CONSULTA + listaPelis.getSelectedItem().toString() + "'");
+        ejecutaHQLConsulta(CONSULTA + listaPelis.getSelectedItem().toString() + "'",
+                (CONSULTA_PELI + listaPelis.getSelectedItem().toString() + "'"));        
     }
 
-    private void ejecutaHQLConsulta(String hql) {
+    /**
+     * Método que ejecuta las dos consultas necesarias
+     * @param hql String con la consulta para la lista de actores
+     * @param hql2 String con la consulta para la lista de películas. En nuestro caso
+     * sólo una película porque está restringida por su título.
+     */
+    private void ejecutaHQLConsulta(String hql, String hql2) {
         try {
             Session session = HibernateUtil.getSessionFactory().openSession();
             session.beginTransaction();
             Query consulta = session.createQuery(hql);
+            Query consultaPeli = session.createQuery(hql2);
             List resultList = consulta.list();
-            mostrarResultados(resultList);
+            Film film = (Film) consultaPeli.uniqueResult(); //Sólo esperamos un resultado
+            mostrarResultados(resultList, film);
             session.getTransaction().commit();
         } catch (HibernateException he) {
             he.printStackTrace();
         }
     }
 
-    private void mostrarResultados(List resultList) {
+    /**
+     * Este método creará la JTable, especificará las columnas
+     * y las llenará con los datos devueltos por las consultas
+     * @param resultList Lista de objectos Actor devueltos por la consulta
+     * @param film Objeto película devuelto por la consulta
+     */
+    private void mostrarResultados(List resultList, Film film) {
         Vector<String> tableHeaders = new Vector<String>();
         Vector tableData = new Vector();
         tableHeaders.add("Nombre");
@@ -78,7 +107,6 @@ public class Ventana extends java.awt.Frame {
 
         for (Object o : resultList) {
             Actor actor = (Actor) o;
-            Film film = (Film) o;
             Vector<Object> oneRow = new Vector<Object>();
             oneRow.add(actor.getFirstName());
             oneRow.add(actor.getLastName());
@@ -179,7 +207,6 @@ public class Ventana extends java.awt.Frame {
     }//GEN-LAST:event_exitForm
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        //System.out.println(CONSULTA + listaPelis.getSelectedItem().toString() + "'");
         ejecutaConsulta();
     }//GEN-LAST:event_jButton1ActionPerformed
 
